@@ -1,0 +1,120 @@
+﻿@page "/profesores"
+@rendermode InteractiveServer
+@using BlazorServer.Components.Models
+@using BlazorServer.Components.Services
+@inject IProfesorService ProfesorService
+
+<h3>Gestión de Profesores</h3>
+
+<input type="text" @bind="nuevoProfesor.Nombre" placeholder="Nombre" />
+<input type="text" @bind="nuevoProfesor.Titulacion" placeholder="Titulación" />
+<button class="btn btn-primary" @onclick="AgregarProfesor">Agregar</button>
+
+<hr />
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Nombre</th>
+            <th>Titulación</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var profesor in profesores)
+        {
+            <tr>
+                <td>@profesor.Id</td>
+                <td>
+                    @if (editandoProfesor?.Id == profesor.Id)
+                    {
+                        <input type="text" @bind="editandoProfesor.Nombre" />
+                    }
+                    else
+                    {
+                        @profesor.Nombre
+                    }
+                </td>
+                <td>
+                    @if (editandoProfesor?.Id == profesor.Id)
+                    {
+                        <input type="text" @bind="editandoProfesor.Titulacion" />
+                    }
+                    else
+                    {
+                        @profesor.Titulacion
+                    }
+                </td>
+                <td>
+                    @if (editandoProfesor?.Id == profesor.Id)
+                    {
+                        <button type="button" @onclick="() => GuardarProfesor(profesor)">Guardar</button>
+                        <button type="button" @onclick="CancelarEdicion">Cancelar</button>
+                    }
+                    else
+                    {
+                        <button type="button" @onclick="() => EditarProfesor(profesor)">Editar</button>
+                        <button type="button" @onclick="() => EliminarProfesor(profesor.Id)">Eliminar</button>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Profesor> profesores = new();
+    private Profesor nuevoProfesor = new();
+    private Profesor? editandoProfesor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        profesores = await ProfesorService.GetProfesoresAsync();
+        Console.WriteLine($"Profesores iniciales: {profesores.Count}");
+    }
+
+    private async Task AgregarProfesor()
+    {
+        Console.WriteLine("Método AgregarProfesor ejecutado");
+
+        if (!string.IsNullOrWhiteSpace(nuevoProfesor.Nombre))
+        {
+            await ProfesorService.AddProfesorAsync(nuevoProfesor);
+            nuevoProfesor = new Profesor();
+            profesores = await ProfesorService.GetProfesoresAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void EditarProfesor(Profesor profesor)
+    {
+        editandoProfesor = new Profesor
+        {
+            Id = profesor.Id,
+            Nombre = profesor.Nombre,
+            Titulacion = profesor.Titulacion
+        };
+    }
+
+    private async Task GuardarProfesor(Profesor profesor)
+    {
+        if (editandoProfesor != null)
+        {
+            await ProfesorService.UpdateProfesorAsync(editandoProfesor);
+            profesores = await ProfesorService.GetProfesoresAsync();
+            editandoProfesor = null;
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        editandoProfesor = null;
+    }
+
+    private async Task EliminarProfesor(int id)
+    {
+        await ProfesorService.DeleteProfesorAsync(id);
+        profesores = await ProfesorService.GetProfesoresAsync();
+    }
+}
